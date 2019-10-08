@@ -138,19 +138,19 @@
     $ParentOU = Get-ADOrganizationalUnit -Filter "Name -eq `"$ParentOUName`"" -Server $Server
 
     #$UserOU = New-ADOrganizationalUnit -Name "Users" -Path $ParentOU.DistinguishedName -Verbose -PassThru -Server $Server -ErrorAction Stop
-    $UserOU = Get-ADOrganizationalUnit -Filter "Name -eq `"Users`"" -Server $Server
+    $UserOU = Get-ADOrganizationalUnit -Filter "Name -eq `"Users`"" -SearchBase $ParentOU.DistinguishedName -Server $Server
 
-    If ((Get-ADOrganizationalUnit -Filter "Name -eq `"Groups`"" -SearchScope SubTree -Server $Server -ErrorAction SilentlyContinue))
+    If ((Get-ADOrganizationalUnit -Filter "Name -eq `"Groups`"" -SearchBase $ParentOU.DistinguishedName -Server $Server -ErrorAction SilentlyContinue))
     {
-        Get-ADOrganizationalUnit -Filter "Name -eq `"Groups`"" -SearchScope SubTree -Server $Server | Set-ADObject -ProtectedFromAccidentalDeletion:$False -Server $Server -PassThru | Remove-ADOrganizationalUnit -Confirm:$False -Server $Server -Recursive -Verbose
+        Get-ADOrganizationalUnit -Filter "Name -eq `"Groups`"" -SearchBase $ParentOU.DistinguishedName -Server $Server | Set-ADObject -ProtectedFromAccidentalDeletion:$False -Server $Server -PassThru | Remove-ADOrganizationalUnit -Confirm:$False -Server $Server -Recursive -Verbose
         Write-Host ""
     }
     $GroupOU = New-ADOrganizationalUnit -Name "Groups" -Path $ParentOU.DistinguishedName -Verbose -PassThru -Server $Server -ErrorAction Stop
 
-    If ((Get-ADOrganizationalUnit -Filter "Name -eq `"Users`"" -SearchScope SubTree -Server $Server -ErrorAction SilentlyContinue))
+    If ((Get-ADOrganizationalUnit -Filter "Name -eq `"Users`"" -SearchBase $ParentOU.DistinguishedName -Server $Server -ErrorAction SilentlyContinue))
     {
         Write-Host "Users OU already exists"
-        $deletes= Get-ADUser -Filter {Name -notlike 'Admin'} -SearchBase "OU=Users,OU=$($ParentOUName),$($DomainDN)" -properties SamAccountName
+        $deletes= Get-ADUser -Filter {Name -notlike 'Admin'} -SearchBase $UserOU.DistinguishedName -properties SamAccountName
         foreach ($delete in $deletes) 
         {
             echo "Deleting user account $delete . . . " 
