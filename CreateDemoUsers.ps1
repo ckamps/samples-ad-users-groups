@@ -7,7 +7,9 @@
 	    [Parameter(Mandatory=$False)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({(Test-Connection -ComputerName "$_" -Count 4 -Quiet) -and (Test-WSMAN -ComputerName "$_")})]	
-        [String]$Server = "$($Env:Computername).$($Env:UserDnsDomain.ToLower())"
+        #[String]$Server = "$($Env:Computername).$($Env:UserDnsDomain.ToLower())"
+        # Need to make Server an optional argument.
+        [String]$Server = "10.0.3.82"
     )
 
 #Clear The Screen
@@ -116,7 +118,7 @@
 
 #Perform the following actions
     Import-Module -Name 'ActiveDirectory' -Force -NoClobber -ErrorAction Stop
-    
+
     $Domain = Get-ADDomain -Server $Server
     
     $DomainDN = $Domain.DistinguishedName
@@ -125,33 +127,48 @@
 
     $NetBiosNadme = $Domain.NetBiosName
     
-    $ParentOUName = "Demo Accounts"
+    $ParentOUName = "corp"
+    # $ParentOUName = "Demo Accounts"
+
+    Write-Host "$($NewLine)"
+    Write-Host "Domain = $($Domain)" -BackgroundColor Black -ForegroundColor Cyan
+    Write-Host "DomainDN = $($DomainDN)" -BackgroundColor Black -ForegroundColor Cyan
+    Write-Host "Forest = $($Forest)" -BackgroundColor Black -ForegroundColor Cyan
+    Write-Host "NetBiosNadme = $($NetBiosNadme)" -BackgroundColor Black -ForegroundColor Cyan
+    Write-Host "ParentOUName = $($ParentOUName)" -BackgroundColor Black -ForegroundColor Cyan
+    Write-Host "$($NewLine)"
     
-    If ((Get-ADOrganizationalUnit -Filter "Name -eq `"$ParentOUName`"" -Server $Server -ErrorAction SilentlyContinue))
-        {
-            Get-ADOrganizationalUnit -Filter "Name -eq `"$ParentOUName`"" -SearchScope SubTree -Server $Server | Set-ADObject -ProtectedFromAccidentalDeletion:$False -Server $Server -PassThru | Remove-ADOrganizationalUnit -Confirm:$True -Server $Server -Recursive -Verbose
-            Write-Host ""
-        }
-    Else
-        {
-            Set-ADDefaultDomainPasswordPolicy $Forest -ComplexityEnabled $False -MaxPasswordAge "1000" -PasswordHistoryCount 0 -MinPasswordAge 0 -Server $Server
+    #If ((Get-ADOrganizationalUnit -Filter "Name -eq `"$ParentOUName`"" -Server $Server -ErrorAction SilentlyContinue))
+    #    {
+            #Get-ADOrganizationalUnit -Filter "Name -eq `"$ParentOUName`"" -SearchScope SubTree -Server $Server | Set-ADObject -ProtectedFromAccidentalDeletion:$False -Server $Server -PassThru | Remove-ADOrganizationalUnit -Confirm:$True -Server $Server -Recursive -Verbose
+    #        Write-Host ""
+    #    }
+    #Else
+    #    {
+           # Set-ADDefaultDomainPasswordPolicy $Forest -ComplexityEnabled $False -MaxPasswordAge "1000" -PasswordHistoryCount 0 -MinPasswordAge 0 -Server $Server
             
-            New-ADOrganizationalUnit -Name $ParentOUName -Path $DomainDN -Verbose -Server $Server -ErrorAction Stop
+            #New-ADOrganizationalUnit -Name $ParentOUName -Path $DomainDN -Verbose -Server $Server -ErrorAction Stop
 
             $ParentOU = Get-ADOrganizationalUnit -Filter "Name -eq `"$ParentOUName`"" -Server $Server
 
-            $UserOU = New-ADOrganizationalUnit -Name "Users" -Path $ParentOU.DistinguishedName -Verbose -PassThru -Server $Server -ErrorAction Stop
-            $GroupOU = New-ADOrganizationalUnit -Name "Groups" -Path $ParentOU.DistinguishedName -Verbose -PassThru -Server $Server -ErrorAction Stop
-            $ServiceAccountOU = New-ADOrganizationalUnit -Name "Service Accounts" -Path $ParentOU.DistinguishedName -Verbose -PassThru -Server $Server -ErrorAction Stop
-            $ServiceGroupOU = New-ADOrganizationalUnit -Name "Service Groups" -Path $ParentOU.DistinguishedName -Verbose -PassThru -Server $Server -ErrorAction Stop
+            #$UserOU = New-ADOrganizationalUnit -Name "Users" -Path $ParentOU.DistinguishedName -Verbose -PassThru -Server $Server -ErrorAction Stop
+            $UserOU = Get-ADOrganizationalUnit -Filter "Name -eq `"Users`"" -Server $Server
+            #$GroupOU = New-ADOrganizationalUnit -Name "Groups" -Path $ParentOU.DistinguishedName -Verbose -PassThru -Server $Server -ErrorAction Stop
+            $GroupOU = Get-ADOrganizationalUnit -Filter "Name -eq `"Groups`"" -Server $Server
+            #$ServiceAccountOU = New-ADOrganizationalUnit -Name "Service Accounts" -Path $ParentOU.DistinguishedName -Verbose -PassThru -Server $Server -ErrorAction Stop
+            $UserOU = Get-ADOrganizationalUnit -Filter "Name -eq `"Service Accounts`"" -Server $Server
+            #$ServiceGroupOU = New-ADOrganizationalUnit -Name "Service Groups" -Path $ParentOU.DistinguishedName -Verbose -PassThru -Server $Server -ErrorAction Stop
+            $ServiceGroupOU = Get-ADOrganizationalUnit -Filter "Name -eq `"Service Groups`"" -Server $Server
 
-            $UserCount = 1000 #Up to 2500 can be created
+            $UserCount = 20 #Up to 2500 can be created
+            #$UserCount = 1000 #Up to 2500 can be created
     
             $InitialPassword = "Password1" #Initial Password for all users
     
             $Company = "Contoso Computing, LLC."
     
-            $Content = Import-CSV -Path "$($ScriptDir)\$($ScriptName).csv" -ErrorAction Stop | Get-Random -Count $UserCount | Sort-Object -Property State
+            $Content = Import-CSV -Path "$($ScriptDir)\sample-users.csv" -ErrorAction Stop | Get-Random -Count $UserCount | Sort-Object -Property State
+            #$Content = Import-CSV -Path "$($ScriptDir)\$($ScriptName).csv" -ErrorAction Stop | Get-Random -Count $UserCount | Sort-Object -Property State
     
             $Departments =  (
                               @{"Name" = "Accounting"; Positions = ("Manager", "Accountant", "Data Entry")},
@@ -167,10 +184,10 @@
                             )
     
             $Users = $Content | Select-Object `
-                @{Name="Name";Expression={"$($_.Surname), $($_.GivenName)"}},`
-                @{Name="Description";Expression={"User account for $($_.GivenName) $($_.MiddleInitial). $($_.Surname)"}},`
-                @{Name="SamAccountName"; Expression={"$($_.GivenName.ToCharArray()[0])$($_.MiddleInitial)$($_.Surname)"}},`
-                @{Name="UserPrincipalName"; Expression={"$($_.GivenName.ToCharArray()[0])$($_.MiddleInitial)$($_.Surname)@$($Forest)"}},`
+                @{Name="Name"; Expression={"$($_.Surname), $($_.GivenName)"}},`
+                @{Name="Description"; Expression={"User account for $($_.GivenName) $($_.MiddleInitial). $($_.Surname)"}},`
+                @{Name="SamAccountName"; Expression={"e$($_.EmployeeID.PadLeft(6,'0'))"}},`
+                @{Name="UserPrincipalName"; Expression={"$($_.GivenName.ToLower()).$($_.Surname.ToLower())@$($Forest.substring($ParentOUName.Length+1))"}},`
                 @{Name="GivenName"; Expression={$_.GivenName}},`
                 @{Name="Initials"; Expression={$_.MiddleInitial}},`
                 @{Name="Surname"; Expression={$_.Surname}},`
@@ -180,13 +197,13 @@
                 @{Name="State"; Expression={$_.State}},`
                 @{Name="Country"; Expression={$_.Country}},`
                 @{Name="PostalCode"; Expression={$_.ZipCode}},`
-                @{Name="EmailAddress"; Expression={"$($_.GivenName.ToCharArray()[0])$($_.MiddleInitial)$($_.Surname)@$($Forest)"}},`
+                @{Name="EmailAddress"; Expression={"$($_.GivenName.ToLower()).$($_.Surname.ToLower())@$($Forest.substring($ParentOUName.Length+1))"}},`
                 @{Name="AccountPassword"; Expression={ (ConvertTo-SecureString -String $InitialPassword -AsPlainText -Force)}},`
                 @{Name="OfficePhone"; Expression={$_.TelephoneNumber}},`
                 @{Name="Company"; Expression={$Company}},`
                 @{Name="Department"; Expression={$Departments[(Get-Random -Maximum $Departments.Count)].Item("Name") | Get-Random -Count 1}},`
                 @{Name="Title"; Expression={$Departments[(Get-Random -Maximum $Departments.Count)].Item("Positions") | Get-Random -Count 1}},`
-                @{Name="EmployeeID"; Expression={"$($_.Country)-$((Get-Random -Minimum 0 -Maximum 99999).ToString('000000'))"}},`
+                @{Name="EmployeeID"; Expression={$_.EmployeeID}},`
                 @{Name="BirthDate"; Expression={$_.Birthday}},`
                 @{Name="Gender"; Expression={"$($_.Gender.SubString(0,1).ToUpper())$($_.Gender.Substring(1).ToLower())"}},`
                 @{Name="Enabled"; Expression={$True}},`
@@ -203,27 +220,8 @@
     
             ForEach ($User In $Users)
                 {
-                    If (!(Get-ADOrganizationalUnit -Filter "Name -eq `"$($User.Country)`"" -SearchBase $UserOU.DistinguishedName -Server $Server -ErrorAction SilentlyContinue))
-                        {
-                            $CountryOU = New-ADOrganizationalUnit -Name $User.Country -Path $UserOU.DistinguishedName -Country $User.Country -Verbose -Server $Server -PassThru
-                            Write-Host ""
-                        }
-                    Else
-                        {
-                            $CountryOU = Get-ADOrganizationalUnit -Filter "Name -eq `"$($User.Country)`"" -Server $Server
-                        }
-   
-                    If (!(Get-ADOrganizationalUnit -Filter "Name -eq `"$($User.State)`"" -SearchBase $CountryOU.DistinguishedName -Server $Server -ErrorAction SilentlyContinue))
-                        {
-                            $StateOU = New-ADOrganizationalUnit -Name $User.State -Path $CountryOU.DistinguishedName -State $User.State -Country $User.Country -Verbose -Server $Server -PassThru
-                            Write-Host ""
-                        }
-                    Else
-                        {
-                            $StateOU = Get-ADOrganizationalUnit -Filter "Name -eq `"$($User.State)`"" -Server $Server
-                        }
-               
-                    $DestinationOU = Get-ADOrganizationalUnit -Filter "Name -eq `"$($User.State)`"" -SearchBase $CountryOU.DistinguishedName -Server $Server
+                    $DestinationOU =  Get-ADOrganizationalUnit -Filter "Name -eq `"Users`"" -SearchBase $DomainDN -Server $Server
+                    #$DestinationOU = Get-ADOrganizationalUnit -Filter "Name -eq `"$($User.State)`"" -SearchBase $CountryOU.DistinguishedName -Server $Server
     
                     $CreateADUser = $User | Select-Object -Property @{Name="Path"; Expression={$DestinationOU.DistinguishedName}}, * | New-ADUser -Verbose -Server $Server -PassThru
             
@@ -239,7 +237,7 @@
                 }
 
             Write-Host ""
-        }
+       # }
 
 #Stop logging script output 
     $($NewLine)
