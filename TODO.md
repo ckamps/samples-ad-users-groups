@@ -2,7 +2,5 @@
   * Data file
   * Company name
   * Domain Controller
-* Reinstate idempotency
-* Add option to delete all objects that were added.
-* Remove unused code.
+  * Number of users to add
 * Rework initial password setting.
