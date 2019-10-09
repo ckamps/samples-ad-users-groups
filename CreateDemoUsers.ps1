@@ -205,7 +205,9 @@
         @{Name="Gender"; Expression={"$($_.Gender.SubString(0,1).ToUpper())$($_.Gender.Substring(1).ToLower())"}},`
         @{Name="Enabled"; Expression={$True}},`
         @{Name="PasswordNeverExpires"; Expression={$True}}
-         
+
+    New-ADGroup -Name "Remote-Desktop" -SamAccountName "Remote-Desktop" -GroupCategory Security -GroupScope Global -Path $GroupOU.DistinguishedName -Description "Remote desktop users" -Verbose -Server $Server -PassThru
+
     ForEach ($Department In $Departments.Name)
     {
         $CreateADGroup = New-ADGroup -Name "$Department" -SamAccountName "$Department" -GroupCategory Security -GroupScope Global -Path $GroupOU.DistinguishedName -Description "Security Group for all $Department users" -Verbose -OtherAttributes @{"Mail"="$($Department.Replace(' ',''))@$($Forest)"} -Server $Server -PassThru
@@ -223,6 +225,7 @@
         $CreateADUser = $User | Select-Object -Property @{Name="Path"; Expression={$DestinationOU.DistinguishedName}}, * | New-ADUser -Verbose -Server $Server -PassThru
             
         $AddADUserToGroup = Add-ADGroupMember -Identity $User.Department -Members $User.SamAccountName -Server $Server -Verbose
+        Add-ADGroupMember -Identity "Remote-Desktop" -Members $User.SamAccountName -Server $Server -Verbose
 
         Write-Host ""
     }
