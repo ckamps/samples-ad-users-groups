@@ -4,7 +4,7 @@
 [CmdletBinding()]
     Param
     (        	
-	    [Parameter(Mandatory=$False)]
+        [Parameter(Mandatory=$False)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({(Test-Connection -ComputerName "$_" -Count 4 -Quiet) -and (Test-WSMAN -ComputerName "$_")})]	
         #[String]$Server = "$($Env:Computername).$($Env:UserDnsDomain.ToLower())"
