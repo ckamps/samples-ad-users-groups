@@ -13,14 +13,6 @@
     )
 
     Clear-Host
-
-    $Global:DebugPreference = "SilentlyContinue"
-    $Global:ErrorActionPreference = "Continue"
-    $Global:VerbosePreference = "SilentlyContinue"
-    $Global:WarningPreference = "Continue"
-    $Global:ConfirmPreference = "None"
-
-    $NewLine = "`n"
   
     $ScriptDir = ($MyInvocation.MyCommand.Definition | Split-Path -Parent | Out-String).TrimEnd("\").Trim()
     $ScriptName = [System.IO.Path]::GetFileNameWithoutExtension($MyInvocation.MyCommand.Name)
@@ -36,13 +28,11 @@
     $NetBiosNadme = $Domain.NetBiosName
     $ParentOUName = "corp"
 
-    Write-Host "$($NewLine)"
     Write-Host "Domain = $($Domain)" -BackgroundColor Black -ForegroundColor Cyan
     Write-Host "DomainDN = $($DomainDN)" -BackgroundColor Black -ForegroundColor Cyan
     Write-Host "Forest = $($Forest)" -BackgroundColor Black -ForegroundColor Cyan
     Write-Host "NetBiosNadme = $($NetBiosNadme)" -BackgroundColor Black -ForegroundColor Cyan
     Write-Host "ParentOUName = $($ParentOUName)" -BackgroundColor Black -ForegroundColor Cyan
-    Write-Host "$($NewLine)"
 
     $ParentOU = Get-ADOrganizationalUnit -Filter "Name -eq `"$ParentOUName`"" -Server $Server
 
@@ -150,6 +140,4 @@
 
     Write-Host ""
  
-    $($NewLine)
-    Write-Warning -Message "Run `'$($ScriptName).ps1`' twice if nothing happens initially. This is due to the OU deletion confirmation prompt."
     Stop-Transcript
