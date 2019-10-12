@@ -15,7 +15,8 @@
     Clear-Host
   
     $UserCount = 20 #Up to 2500 can be created
-    $Company = "Contoso Computing, LLC."    
+    $Company = "ACME Incorporated" 
+
     $ScriptDir = ($MyInvocation.MyCommand.Definition | Split-Path -Parent | Out-String).TrimEnd("\").Trim()
     $Content = Import-CSV -Path "$($ScriptDir)\sample-users.csv" -ErrorAction Stop | Get-Random -Count $UserCount | Sort-Object -Property State
    
@@ -25,14 +26,12 @@
     $Domain = Get-ADDomain -Server $Server
     $DomainDN = $Domain.DistinguishedName
     $Forest = $Domain.Forest
-    $NetBiosNadme = $Domain.NetBiosName
-    $ParentOUName = "corp"
+    $ParentOUName = $Domain.NetBiosName
 
     Write-Host ""
     Write-Host "Domain = $($Domain)" -BackgroundColor Black -ForegroundColor Cyan
     Write-Host "DomainDN = $($DomainDN)" -BackgroundColor Black -ForegroundColor Cyan
     Write-Host "Forest = $($Forest)" -BackgroundColor Black -ForegroundColor Cyan
-    Write-Host "NetBiosNadme = $($NetBiosNadme)" -BackgroundColor Black -ForegroundColor Cyan
     Write-Host "ParentOUName = $($ParentOUName)" -BackgroundColor Black -ForegroundColor Cyan
 
     $ParentOU = Get-ADOrganizationalUnit -Filter "Name -eq `"$ParentOUName`"" -Server $Server
