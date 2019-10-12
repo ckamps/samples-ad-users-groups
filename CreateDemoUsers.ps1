@@ -14,11 +14,11 @@
 
     Clear-Host
   
+    $UserCount = 20 #Up to 2500 can be created
+    $Company = "Contoso Computing, LLC."    
     $ScriptDir = ($MyInvocation.MyCommand.Definition | Split-Path -Parent | Out-String).TrimEnd("\").Trim()
-    $ScriptName = [System.IO.Path]::GetFileNameWithoutExtension($MyInvocation.MyCommand.Name)
-
-    Start-Transcript -Path "$Temp\$ScriptName.log" -Force
-
+    $Content = Import-CSV -Path "$($ScriptDir)\sample-users.csv" -ErrorAction Stop | Get-Random -Count $UserCount | Sort-Object -Property State
+   
     Import-Module -Name 'ActiveDirectory' -Force -NoClobber -ErrorAction Stop
     Add-Type -AssemblyName System.web
 
@@ -28,6 +28,7 @@
     $NetBiosNadme = $Domain.NetBiosName
     $ParentOUName = "corp"
 
+    Write-Host ""
     Write-Host "Domain = $($Domain)" -BackgroundColor Black -ForegroundColor Cyan
     Write-Host "DomainDN = $($DomainDN)" -BackgroundColor Black -ForegroundColor Cyan
     Write-Host "Forest = $($Forest)" -BackgroundColor Black -ForegroundColor Cyan
@@ -63,13 +64,7 @@
     #    Write-Host ""
     #}
     #$RemoteDesktopGPO = New-GPO -Name "RemoteDesktop" -Verbose -Domain $Forest -Server $Server -ErrorAction Stop | New-GPLink -Target $ParentOU.DistinguishedName -Verbose -Server $Server -ErrorAction Stop 
- 
-    $UserCount = 20 #Up to 2500 can be created
-   
-    $Company = "Contoso Computing, LLC."
-    
-    $Content = Import-CSV -Path "$($ScriptDir)\sample-users.csv" -ErrorAction Stop | Get-Random -Count $UserCount | Sort-Object -Property State
-    
+     
     $Departments =  (
         @{"Name" = "Accounting"; Positions = ("Manager", "Accountant", "Data Entry")},
         @{"Name" = "Human Resources"; Positions = ("Manager", "Administrator", "Officer", "Coordinator")},
@@ -139,5 +134,3 @@
     }
 
     Write-Host ""
- 
-    Stop-Transcript
