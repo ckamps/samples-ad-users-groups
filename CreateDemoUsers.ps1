@@ -9,123 +9,32 @@
         [ValidateScript({(Test-Connection -ComputerName "$_" -Count 4 -Quiet) -and (Test-WSMAN -ComputerName "$_")})]	
         #[String]$Server = "$($Env:Computername).$($Env:UserDnsDomain.ToLower())"
         # Need to make Server an optional argument.
-        [String]$Server = "10.0.3.82"
+        [String]$Server = "10.0.3.70"
     )
 
-#Clear The Screen
     Clear-Host
 
-#Define Default Action Preferences
     $Global:DebugPreference = "SilentlyContinue"
     $Global:ErrorActionPreference = "Continue"
     $Global:VerbosePreference = "SilentlyContinue"
     $Global:WarningPreference = "Continue"
     $Global:ConfirmPreference = "None"
-	
-#Define ASCII Characters    
-    $Equals = [Char]61
-    $Space = [Char]32
-    $SingleQuote = [Char]39
-    $DoubleQuote = [Char]34
+
     $NewLine = "`n"
-
-#Load WMI Classes
-    $Bios = Get-WmiObject -Namespace "root\CIMv2" -Class "Win32_Bios" -Property * | Select *
-    $ComputerSystem = Get-WmiObject -Namespace "root\CIMv2" -Class "Win32_ComputerSystem" -Property * | Select *
-    $ComputerSystemProduct = Get-WmiObject -Namespace "root\CIMv2" -Class "Win32_ComputerSystemProduct" -Property * | Select *
-    $LogicalDisk = Get-WmiObject -Namespace "root\CIMv2" -Class "Win32_LogicalDisk" -Property * | Select *
-    $OperatingSystem = Get-WmiObject -Namespace "root\CIMv2" -Class "Win32_OperatingSystem" -Property * | Select *
-
-#Retrieve property values
-	$Make = $ComputerSystem.Manufacturer
-    If ($Make -like "*Lenovo*") {$Model = $ComputerSystemProduct.Version} Else {$Model = $ComputerSystem.Model}
-    $OSArchitecture = $($OperatingSystem.OSArchitecture).Replace("-bit", "").Replace("32", "86").Insert(0,"x").ToUpper()
-    Try {$OSCaption = "{1} {2} {3}" -f $($OperatingSystem.Caption).Split(" ").Trim()} Catch {$OSCaption = "WindowsPE"}
-    $OSVersion = [Version]$OperatingSystem.Version
-    $OSVersionNumber = [Decimal]("{0}.{1}" -f $($OperatingSystem.Version).Split(".").Trim())
-    $PSVersion = [Version]$PSVersionTable.PSVersion
-    $OpticalDiskDriveLetter = $LogicalDisk | Where-Object {$_.DriveType -eq 5} | Select -First 1 -ExpandProperty DeviceID
-    $SerialNumber = $Bios.SerialNumber.ToUpper()
-    Try {([System.__ComObject]$TSEnvironment = New-Object -ComObject "Microsoft.SMS.TSEnvironment");($IsRunningTaskSequence = $True)} Catch {$IsRunningTaskSequence = $False}
-
-#Set Path Variables  
+  
     $ScriptDir = ($MyInvocation.MyCommand.Definition | Split-Path -Parent | Out-String).TrimEnd("\").Trim()
     $ScriptName = [System.IO.Path]::GetFileNameWithoutExtension($MyInvocation.MyCommand.Name)
 
-#Define Functions
-	#Encode a plain text string to a Base64 string
-		Function ConvertTo-Base64 
-	        { 
-                [CmdletBinding(SupportsShouldProcess=$False)]
-                    Param
-                        (     
-                            [Parameter(Mandatory=$True)]
-                            [ValidateNotNullOrEmpty()]
-                            [String]$String                        
-                        )	            
-
-                            $EncodedString = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($String))
-	                        Write-Verbose -Message "$($NewLine)`"$($String)`" has been converted to the following Base64 encoded string `"$($EncodedString)`"$($NewLine)"
-                    
-                    Return $EncodedString
-	        }	
-		
-    #Decode a Base64 string to a plain text string
-	    Function ConvertFrom-Base64 
-	        {  
-                [CmdletBinding(SupportsShouldProcess=$False)]
-                    Param
-                        (     
-                            [Parameter(Mandatory=$True)]
-                            [ValidateNotNullOrEmpty()]
-                            [ValidatePattern('^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{4})$')]
-                            [String]$String                        
-                        )
-                
-                        $DecodedString = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($String))
-	                    Write-Verbose -Message "$($NewLine)`"$($String)`" has been converted from the following Base64 encoded string `"$($DecodedString)`"$($NewLine)"
-                    
-                    Return $DecodedString
-	        }
-
     Start-Transcript -Path "$Temp\$ScriptName.log" -Force
 
-    Write-Host "$($NewLine)"
-    Write-Host "User = $($ComputerSystem.UserName)" -BackgroundColor Black -ForegroundColor Cyan
-    Write-Host "Target Server = $($Server)" -BackgroundColor Black -ForegroundColor Cyan
-    Write-Host "Manufacturer = $($Make)" -BackgroundColor Black -ForegroundColor Cyan
-    Write-Host "Model = $($Model)" -BackgroundColor Black -ForegroundColor Cyan
-    Write-Host "Operating System Architecture = $($OSArchitecture)" -BackgroundColor Black -ForegroundColor Cyan
-    Write-Host "Operating System Caption = $($OSCaption)" -BackgroundColor Black -ForegroundColor Cyan
-    Write-Host "Operating System Version = $($OperatingSystem.Version)" -BackgroundColor Black -ForegroundColor Cyan
-    Write-Host "Powershell Version = $($PSVersion)" -BackgroundColor Black -ForegroundColor Cyan
-    Write-Host "Script Directory = $($ScriptDir)" -BackgroundColor Black -ForegroundColor Cyan
-    Write-Host "Script Name = $($ScriptName).ps1" -BackgroundColor Black -ForegroundColor Cyan
-    Write-Host "Running Task Sequence = $($IsRunningTaskSequence)" -BackgroundColor Black -ForegroundColor Cyan
-    Write-Host "$($NewLine)"
-		
-#Perform the following actions based on if a task sequence is running or not (This is a good place to set variables)
-    If ($IsRunningTaskSequence -eq $True)
-        {
-
-        }
-    ElseIf ($IsRunningTaskSequence -eq $False)
-        {
-
-        }
-
     Import-Module -Name 'ActiveDirectory' -Force -NoClobber -ErrorAction Stop
+    Add-Type -AssemblyName System.web
 
     $Domain = Get-ADDomain -Server $Server
-    
     $DomainDN = $Domain.DistinguishedName
-    
     $Forest = $Domain.Forest
-
     $NetBiosNadme = $Domain.NetBiosName
-    
     $ParentOUName = "corp"
-    # $ParentOUName = "Demo Accounts"
 
     Write-Host "$($NewLine)"
     Write-Host "Domain = $($Domain)" -BackgroundColor Black -ForegroundColor Cyan
@@ -137,7 +46,6 @@
 
     $ParentOU = Get-ADOrganizationalUnit -Filter "Name -eq `"$ParentOUName`"" -Server $Server
 
-    #$UserOU = New-ADOrganizationalUnit -Name "Users" -Path $ParentOU.DistinguishedName -Verbose -PassThru -Server $Server -ErrorAction Stop
     $UserOU = Get-ADOrganizationalUnit -Filter "Name -eq `"Users`"" -SearchBase $ParentOU.DistinguishedName -Server $Server
 
     If ((Get-ADOrganizationalUnit -Filter "Name -eq `"Groups`"" -SearchBase $ParentOU.DistinguishedName -Server $Server -ErrorAction SilentlyContinue))
@@ -158,10 +66,15 @@
         }
         Write-Host ""
     }
+
+    #If ((Get-GPO -Name "RemoteDesktop" -Server $Server -ErrorAction SilentlyContinue))
+    #{
+    #    Remove-GPO -Name "RemoteDesktop" -Server $Server
+    #    Write-Host ""
+    #}
+    #$RemoteDesktopGPO = New-GPO -Name "RemoteDesktop" -Verbose -Domain $Forest -Server $Server -ErrorAction Stop | New-GPLink -Target $ParentOU.DistinguishedName -Verbose -Server $Server -ErrorAction Stop 
+ 
     $UserCount = 20 #Up to 2500 can be created
-    #$UserCount = 1000 #Up to 2500 can be created
-   
-    $InitialPassword = "Password1" #Initial Password for all users
    
     $Company = "Contoso Computing, LLC."
     
@@ -195,7 +108,7 @@
         @{Name="Country"; Expression={$_.Country}},`
         @{Name="PostalCode"; Expression={$_.ZipCode}},`
         @{Name="EmailAddress"; Expression={"$($_.GivenName.ToLower()).$($_.Surname.ToLower())@$($Forest.substring($ParentOUName.Length+1))"}},`
-        @{Name="AccountPassword"; Expression={ (ConvertTo-SecureString -String $InitialPassword -AsPlainText -Force)}},`
+        @{Name="AccountPassword"; Expression={$PlainTextPassword = [System.Web.Security.Membership]::GeneratePassword(18,3); ConvertTo-SecureString $PlainTextPassword -AsPlainText -Force; Write-Host "Initial password: $($PlainTextPassword) - $($_.Surname), $($_.GivenName) "}},`
         @{Name="OfficePhone"; Expression={$_.TelephoneNumber}},`
         @{Name="Company"; Expression={$Company}},`
         @{Name="Department"; Expression={$Departments[(Get-Random -Maximum $Departments.Count)].Item("Name") | Get-Random -Count 1}},`
@@ -206,13 +119,12 @@
         @{Name="Enabled"; Expression={$True}},`
         @{Name="PasswordNeverExpires"; Expression={$True}}
 
-    New-ADGroup -Name "Remote-Desktop" -SamAccountName "Remote-Desktop" -GroupCategory Security -GroupScope Global -Path $GroupOU.DistinguishedName -Description "Remote desktop users" -Verbose -Server $Server -PassThru
+    New-ADGroup -Name "Remote Desktop" -SamAccountName "Remote Desktop" -GroupCategory Security -GroupScope Global -Path $GroupOU.DistinguishedName -Description "Remote desktop users" -Verbose -Server $Server -PassThru
 
     ForEach ($Department In $Departments.Name)
     {
         $CreateADGroup = New-ADGroup -Name "$Department" -SamAccountName "$Department" -GroupCategory Security -GroupScope Global -Path $GroupOU.DistinguishedName -Description "Security Group for all $Department users" -Verbose -OtherAttributes @{"Mail"="$($Department.Replace(' ',''))@$($Forest)"} -Server $Server -PassThru
-        If ($Department -eq "Information Technology") {Add-ADGroupMember -Identity "Domain Admins" -Members $Department -Verbose -Server $Server}
-        If ($Department -ne "Information Technology") {Add-ADGroupMember -Identity "Domain Users" -Members $Department -Verbose -Server $Server}
+        # If ($Department -eq "Information Technology") {Add-ADGroupMember -Identity "Domain Admins" -Members $Department -Verbose -Server $Server}
     }
 
     Write-Host ""
@@ -220,12 +132,12 @@
     ForEach ($User In $Users)
     {
         $DestinationOU =  Get-ADOrganizationalUnit -Filter "Name -eq `"Users`"" -SearchBase $DomainDN -Server $Server
-        #$DestinationOU = Get-ADOrganizationalUnit -Filter "Name -eq `"$($User.State)`"" -SearchBase $CountryOU.DistinguishedName -Server $Server
     
         $CreateADUser = $User | Select-Object -Property @{Name="Path"; Expression={$DestinationOU.DistinguishedName}}, * | New-ADUser -Verbose -Server $Server -PassThru
             
         $AddADUserToGroup = Add-ADGroupMember -Identity $User.Department -Members $User.SamAccountName -Server $Server -Verbose
-        Add-ADGroupMember -Identity "Remote-Desktop" -Members $User.SamAccountName -Server $Server -Verbose
+    
+        Add-ADGroupMember -Identity "Remote Desktop" -Members $User.SamAccountName -Server $Server -Verbose
 
         Write-Host ""
     }
