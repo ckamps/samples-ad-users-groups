@@ -1,6 +1,6 @@
 #  Create Sample Active Directory Users and Groups
 
-This script and sample data set can be used to quickly provision a set of sample users and AD security groups in an Active Directory of your choosing.  The script has been primarily tested against instances of the [AWS Managed Microsoft AD](https://docs.aws.amazon.com/directoryservice/latest/admin-guide/directory_microsoft_ad.html) service, but should also work with self-managed AD instances alebit potentially with minor tweaks.
+This script and sample data set can be used to quickly provision a set of sample users and AD security groups in an Active Directory of your choosing.  The script has been primarily tested against instances of the [AWS Managed Microsoft AD](https://docs.aws.amazon.com/directoryservice/latest/admin-guide/directory_microsoft_ad.html) service, but should also work with self-managed AD instances albeit potentially with minor tweaks.
 
 ## Pre-Requisites
 
