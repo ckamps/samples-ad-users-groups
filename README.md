@@ -38,7 +38,10 @@ Code
 ** All users within the top level OU of interest are deleted except for "admin" users. The "admin" user is provisioned by the AWS Managed Microsoft AD service and should not be removed.
 ** All AD security groups within the top level OU of interest are deleted.
 * SAMAccountName is now based on "e" followed by the employeed ID with left padded zeros.
-* UserPrincipalName is now "<first name>.<last name>@<domain name>
+* UserPrincipalName is now
+```
+<first name>.<last name>@<domain name>
+```
 * A new "Remote Desktop" AD security group is added and includes all sample users.
 * Code to auto populate "Domain Admins" and "Domain Users" with sample users was removed given that this access is not provided when using the AWS Managed Microsoft AD service.
 * Code to automatically configure the basis of a Group Policy Object (GPO) to automatically enable remote desktop access for all sample users was added, but commented out until it is determined if this automation is feasible when using a domain managed by the AWS Managed Microsoft AD service.
