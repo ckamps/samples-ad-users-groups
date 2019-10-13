@@ -31,14 +31,17 @@ Sample Data
 Code
 * Removed all unused code.
 * Removed superflouous output of Windows environment data.
-* Removed transcript logging and instead depend on stdout/stderr output.
-* Dynamically generate random initial password for each sample user, set the initial password using the random value, and display those passwords to stdout.
-* Reworked OU processing so that the parent OU is taken from the domain's NetBIOS name. (This aspect likely warrants further flexibility).
-* Reworked auto deletion of previously configured resources so that the script can be run again and again without failure.
-** All users within the top level OU of interest are deleted except for "admin" users. The "admin" user is provisioned by the AWS Managed Microsoft AD service and should not be removed.
-** All AD security groups within the top level OU of interest are deleted.
-* SAMAccountName is now based on "e" followed by the employeed ID with left padded zeros.
-* UserPrincipalName is now
+* Reworked initial password setting so that now a dynamically generated random initial password is used for each sample user and the password for each user is displayed to stdout so that you can capture the initial values.
+* Removed transcript logging and instead simply depend on stdout/stderr output so that initial passwords are not persisted.
+* Reworked OU processing so that the parent OU is taken from the domain's NetBIOS name. (This aspect likely warrants further enhancements and flexibility in cases where multiple top-level OUs may exist in a domain).
+* Reworked auto deletion of previously configured resources at the start of the script so that the script can be run again and again without failure.
+** All users within the top level OU of interest are deleted at the start of the script except for "admin" users. The "admin" user is provisioned by the AWS Managed Microsoft AD service and should not be removed.
+** All AD security groups within the top level OU of interest are automatically deleted at the start of the script prior to the groups being repopulated.
+* SAMAccountName is now of the format:
+```
+e<left padded with 0s employeed ID>
+```
+* UserPrincipalName is now of the format:
 ```
 <first name>.<last name>@<domain name>
 ```
