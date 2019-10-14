@@ -1,6 +1,3 @@
-# %ForceElevation% = Yes
-#Requires -RunAsAdministrator
-
 [CmdletBinding()]
     Param
     (        	
@@ -57,12 +54,14 @@
         Write-Host ""
     }
 
-    #If ((Get-GPO -Name "RemoteDesktop" -Server $Server -ErrorAction SilentlyContinue))
-    #{
-    #    Remove-GPO -Name "RemoteDesktop" -Server $Server
-    #    Write-Host ""
-    #}
-    #$RemoteDesktopGPO = New-GPO -Name "RemoteDesktop" -Verbose -Domain $Forest -Server $Server -ErrorAction Stop | New-GPLink -Target $ParentOU.DistinguishedName -Verbose -Server $Server -ErrorAction Stop 
+    $ComputersOU = Get-ADOrganizationalUnit -Filter "Name -eq `"Computers`"" -SearchBase $ParentOU.DistinguishedName -Server $Server
+  
+    If ((Get-GPO -Name "RemoteDesktop" -Server $Server -ErrorAction SilentlyContinue))
+    {
+        Remove-GPO -Name "RemoteDesktop" -Server $Server
+        Write-Host ""
+    }
+    $RemoteDesktopGPO = New-GPO -Name "RemoteDesktop" -Verbose -Domain $Forest -ErrorAction Stop | New-GPLink -Target $ComputersOU.DistinguishedName -Verbose -Domain $Forest -ErrorAction Stop 
      
     $Departments =  (
         @{"Name" = "Accounting"; Positions = ("Manager", "Accountant", "Data Entry")},
